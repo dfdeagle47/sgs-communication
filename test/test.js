@@ -5,7 +5,7 @@ var sgscommunication = new SGSCommunication({
 			stub: {},
 			defaultTransport: 'stub'
 		},
-		templatesPath: '../../../fixtures/templates',
+		templatesPath: __dirname + '/fixtures/templates',
 		attachmentsPath: 'attachments'
 	}
 });

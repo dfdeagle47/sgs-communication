@@ -160,10 +160,10 @@ module.exports = (function () {
 		var emailContents = settings || {};
 		// var content = settings.html || settings.text || '';
 
-		var dirname = __dirname;
+		// var dirname = __dirname;
 		var lang = settings.lang || 'en';
 		var type = settings.type;
-		var path = dirname + '/' + this.templatesPath + '/' + lang;
+		var path = /*dirname + '/' + */this.templatesPath + '/' + lang;
 		var basePath = path + '/' + type;
 		var attachmentsPath = basePath + '/' + this.attachmentsPath;
 		var staticAttachments = fs.readdirSync(attachmentsPath) || [];
