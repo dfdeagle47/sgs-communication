@@ -30,7 +30,10 @@ function GruntTasks (grunt) {
 				'test/**/*.js',
 				'!test/coverage/**',
 				'Gruntfile.js'
-			]
+			],
+			options: {
+				config: '.jscsrc'
+			}
 		},
 		clean: {
 			coverage: [
@@ -69,6 +72,15 @@ function GruntTasks (grunt) {
 				dir: 'test/coverage/reports',
 				print: 'detail'
 			}
+		},
+		coveralls: {
+			options: {
+				src: 'test/coverage/reports/lcov.info',
+				force: false
+			},
+			default: {
+				src: 'test/coverage/reports/lcov.info'
+			}
 		}
 	});
 
@@ -90,7 +102,8 @@ function GruntTasks (grunt) {
 
 	grunt.registerTask('ci', [
 		'verify',
-		'test'
+		'test',
+		'coveralls'
 	]);
 }
 

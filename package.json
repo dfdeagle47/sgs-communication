@@ -5,12 +5,18 @@
 	"description": "Sagacify's communication module. Support's both Email and SMS's.",
 	"main": "src/sgs-communication.js",
 	"scripts": {
-		"test": "grunt ci --verbose"
+		"test": "grunt ci"
 	},
 	"dependencies": {
-		"nodemailer": "^1.3.0",
+		"simplesmtp": "^0.3.33",
 		"mailparser": "^0.4.6",
-		"email-templates": "^1.1.2"
+		"nodemailer": "^1.3.0",
+		"nodemailer-ses-transport": "^1.2.0",
+		"nodemailer-stub-transport": "^0.1.4",
+		"nodemailer-direct-transport": "^1.0.0",
+		"nodemailer-sendmail-transport": "^1.0.0",
+		"email-templates": "^1.1.2",
+		"ejs": "^1.0.0"
 	},
 	"devDependencies": {
 		"mocha": "^1.21.4",
@@ -19,6 +25,7 @@
 		"grunt-contrib-jshint": "^0.10.0",
 		"grunt-contrib-clean": "^0.6.0",
 		"grunt-mocha-test": "^0.11.0",
+		"grunt-coveralls": "^1.0.0",
 		"grunt-istanbul": "^0.2.4",
 		"grunt-jsonlint": "^1.0.4",
 		"grunt-jscs": "^0.6.1"

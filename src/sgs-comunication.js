@@ -13,21 +13,17 @@ module.exports = (function () {
 	 * @return {SGSCommunication}
 	 */
 	function SGSCommunication (options) {
-		var instance = this;
 
 		this.protocols = {};
 
-		if(options.email) {
+		if (options.email) {
 			this.protocols.email = new EmailInterface(options.email);
 		}
 
-		if(options.sms) {
+		// if (options.sms) {
 			// new SMS Interface
-		}
+		// }
 
-		return (SGSCommunication = function () {
-			return instance;
-		});
 	}
 
 	/**
@@ -44,8 +40,8 @@ module.exports = (function () {
 	 * @api private
 	 */
 	SGSCommunication.prototype.with = function (protocol, transport) {
-		if(protocol in this.protocols) {
-			return this.protocols[protocol]().with(transport);
+		if (protocol in this.protocols) {
+			return this.protocols[protocol].with(transport);
 		}
 	};
 
