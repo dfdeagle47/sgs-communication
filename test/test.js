@@ -1,5 +1,5 @@
-var SGSComunication = require('./coverage/instrument/src/sgs-comunication');
-var sgscomunication = new SGSComunication({
+var SGSCommunication = require('./coverage/instrument/src/sgs-communication');
+var sgscommunication = new SGSCommunication({
 	email: {
 		sender: {
 			stub: {},
@@ -16,7 +16,7 @@ describe('Testing the Crypto module:', function () {
 	'use strict';
 
 	it('Send email through stub', function (callback) {
-		sgscomunication.with('email', 'stub').send(
+		sgscommunication.with('email', 'stub').send(
 			//settings
 			{
 				from: 'mickael@sagacify.com',
