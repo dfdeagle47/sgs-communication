@@ -1,4 +1,7 @@
+var _ = require('underscore');
 var fs = require('fs');
+var path = require('path');
+var async = require('async');
 var MailParser = require('mailparser').MailParser;
 var EmailSender = require('./EmailSender');
 var EmailReceiver = require('./EmailReceiver');
@@ -141,12 +144,12 @@ module.exports = (function () {
 	 * @param {string}			[settings.replyTo]			- ReplyTo field
 	 * @param {string}			[settings.inReplyTo]		- Message Id to which the email replies to
 	 * @param {string}			[settings.references]		- Messages Id list
-	 * @param {array}			[settings.attachments]		- List of attachments files / buffers or strings
 	 * @param {string}			[settings.subject]			- Subject of the email
-	 * @param {string}			settings.text				- Plaintext body
+	 * @param {string}			[settings.text]				- Plaintext body
 	 * @param {string}			[settings.html]				- HTML body
-	 * @param {object}			[settings.header]			- HTTP / SMTP headers
-	 * @param {object}			[settings.ref]				- Reference (ObjectId) to a resource
+	 * @param {object}			[settings.headers]			- HTTP / SMTP headers
+	 * @param {array}			[settings.attachments]		- List of attachments files / buffers or strings
+	 * @param {array}			[settings.messageId]		- List of attachments files / buffers or strings
 	 *
 	 * @param {object}			[data]						- Data to feed to the templating engine
 	 *
@@ -157,61 +160,52 @@ module.exports = (function () {
 	 * @api private
 	 */
 	EmailInterface.prototype.assembleEmail = function (settings, data, callback) {
-		var emailContents = settings || {};
-		// var content = settings.html || settings.text || '';
+		var emailFields = settings || {};
 
-		// var dirname = __dirname;
-		var lang = settings.lang || 'en';
-		var type = settings.type;
-		var path = /*dirname + '/' + */this.templatesPath + '/' + lang;
-		var basePath = path + '/' + type;
-		var attachmentsPath = basePath + '/' + this.attachmentsPath;
-		var staticAttachments = fs.readdirSync(attachmentsPath) || [];
+		var templatesPath = this.templatesPath;
+		var templateHelpers = this.templateHelpers;
+		var templatePartials = this.templatePartials;
 
-		var subject = settings.subject;
-		if (!subject) {
-			subject = fs.readFileSync(basePath + '/subject.txt', 'utf8');
-		}
-		emailContents.subject = subject;
-		if (settings.ref) {
-			emailContents.subject = subject + ' (ref:' + settings.ref + ')';
-		}
+		async.auto({
+			renderedEmail: function (cb) {
+				
+			},
+			renderedSubject: function (cb) {
 
-		var attachments = (settings.attachments || []).concat(staticAttachments);
-		var attachment;
-		var filename;
-		for (var i = 0, len = attachments.length; i < len; i++) {
-			attachment = attachments[i];
-			filename = attachment.filename || attachment.filename || attachment;
-			if (filename[0] === '.') {
-				continue;
-			}
-			attachments[i] = {
-				filename: filename,
-				path: attachment.path || attachmentsPath + '/' + filename,
-				cid: /*this.attachmentsPath + '/' +*/ filename
-			};
-		}
-
-		emailContents.attachments = attachments;
-
-		// TODO : Optimize this function to be called only once at the construction of a new instance
-		EmailTemplates(path, function (error, template) {
-			if (error) {
-				return callback(error);
+			},
+			attachmentsFiles: function (cb) {
+				var attachmentsDir = path.resolve(basePath, 'attachments');
+				fs.readdir(attachmentsDir, cb);
+			},
+			attachmentsList: ['attachmentsFiles', function (cb, results) {
+				return _.map(
+					_.union(
+						results.attachmentsFiles,
+						settings.attachments
+					),
+					function (attachment) {
+						return {
+							filename: attachment,
+							path: attachment,
+							cid: attachment
+						};
+					}
+				);
+			}]
+		}, function (e, results) {
+			if(e) {
+				return callback(e);
 			}
 
-			template(type, data, function (error, html, text) {
-				if (error) {
-					return callback(error);
-				}
-
-				emailContents.html = html;
-				emailContents.text = text;
-				callback(null, emailContents);
+			_.merge(emailFields, {
+				html: results.renderedEmail.html,
+				text: results.renderedEmail.text,
+				subject: results.renderedSubject,
+				attachments: results.attachmentsList
 			});
-		});
 
+			callback(null, emailFields);
+		});
 	};
 
 	/**
