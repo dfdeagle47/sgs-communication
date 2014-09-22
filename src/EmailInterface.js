@@ -16,7 +16,6 @@ module.exports = (function () {
 	 * @classdesc `EmailInterface` class that serves as an interface / middleman between the code base and the EmailSender.
 	 *
 	 * @param {object} [options]					- Options
-	 * @param {object} [options.attachmentsPath]	-  Path to the directory containing the attachments
 	 * @param {object} [options.sender]				-  {@link EmailSender} Options for the email sending service
 	 * @param {object} [options.receiver]			-  {@link EmailReceiver} Options for the email sending service
 	 *
@@ -26,7 +25,6 @@ module.exports = (function () {
 
 		options = options || {};
 
-		this.attachmentsPath = options.attachmentsPath || 'attachments';
 		this.templatesDir = options.templatesDir;
 
 		if (options.sender) {
@@ -71,6 +69,7 @@ module.exports = (function () {
 	 * @api private
 	 */
 	EmailInterface.prototype.getCleanEmailBody = function (email) {
+		// TODO convert from HTML to text and then cleanup if email is HTML
 		email = email
 			// Remove email signatures
 			.replace(/(\r?\n)\-{2} ?(\r?\n)[\w\W]+/, '')
@@ -161,9 +160,13 @@ module.exports = (function () {
 	 *
 	 * @api private
 	 */
-	EmailInterface.prototype.assembleEmail = function (type, data, callback) {
+	EmailInterface.prototype.assembleEmail = function (settings, data, callback) {
 		var accumulator = {};
 		var attachments = false;
+
+		var type = settings.type;
+		var subject = settings.subject;
+
 		var accumulate = function (templates) {
 			var uid = templates.uid;
 			templates.uid = null;
@@ -180,14 +183,15 @@ module.exports = (function () {
 			}
 		}.bind(this);
 
-		var attachmentsPath = this.attachmentsPath;
 		var templatesDir = this.templatesDir;
 		var templating = this.templating;
 
 		async.auto({
 			renderedEmail: function (cb) {
+				var contentDir = path.resolve(templatesDir, 'content');
+
 				templating.render({
-					templatesDir: templatesDir,
+					templatesDir: contentDir,
 					partials: {},
 					helper: {},
 					items: data,
@@ -201,24 +205,33 @@ module.exports = (function () {
 					cb();
 				});
 			},
-			// renderedSubject: function (cb) {
-			// 	templating.render({
-			// 		templatesDir: templatesDir,
-			// 		partials: {},
-			// 		helper: {},
-			// 		items: data,
-			// 		type: type
-			// 	}, function (e, templates) {
-			// 		if(e) {
-			// 			return cb(e);
-			// 		}
+			renderedSubject: function (cb) {
+				if(_.isString(subject)) {
+					return accumulate({
+						subject: subject
+					});
+				}
 
-			// 		accumulate(templates);
-			// 		cb();
-			// 	});
-			// },
+				var subjectDir = path.resolve(templatesDir, 'subject');
+
+				templating.render({
+					templatesDir: subjectDir,
+					partials: {},
+					helper: {},
+					items: data,
+					type: type
+				}, function (e, templates) {
+					if(e) {
+						return cb(e);
+					}
+
+					accumulate(templates);
+					cb();
+				});
+			},
 			attachmentsFiles: function (cb) {
-				var attachmentsDir = path.resolve(templatesDir, type, attachmentsPath);
+				var attachmentsDir = path.resolve(templatesDir, 'attachments', type);
+
 				fs.readdir(attachmentsDir, cb);
 			},
 			attachmentsList: ['attachmentsFiles', function (cb, results) {
@@ -273,7 +286,7 @@ module.exports = (function () {
 		var callbackCount = data.length;
 
 		var transport = this.transport;
-		this.assembleEmail(settings.type, data, function (e, emailContents) {
+		this.assembleEmail(settings, data, function (e, emailContents) {
 			if (e) {
 				return callback(e);
 			}
