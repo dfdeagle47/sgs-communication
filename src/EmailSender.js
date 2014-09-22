@@ -1,10 +1,12 @@
 // Nodemailer plugin is imported and will be used for
 //  sending emails through various transport methods.
+var _ = require('underscore');
 var nodemailer = require('nodemailer');
 var sesTransport = require('nodemailer-ses-transport');
 var stubTransport = require('nodemailer-stub-transport');
 var directTransport = require('nodemailer-direct-transport');
 var sendmailTransport = require('nodemailer-sendmail-transport');
+var NodemailerHtmlToText = require('nodemailer-html-to-text').htmlToText;
 
 // If Node.js version < 0.10.xx, we use the `readable-stream` module
 // as a shim for the core `stream` module.
@@ -54,6 +56,11 @@ module.exports = (function () {
 		}
 		else {
 			this.addDirectTransport(options.direct);
+		}
+
+		this.compiler = true;
+		if (_.isBoolean(options.compiler)) {
+			this.compiler = options.compiler;
 		}
 
 	}
@@ -155,49 +162,26 @@ module.exports = (function () {
 	 * @memberof EmailSender.prototype
 	 *
 	 * @param {string}							transportMethod			- Options for the Direct transport
-	 * @param {object}							parameters				- Parameters used to setup the envelope and email body
-	 * @param {object}							options					- Options related to the event handlers of a send action
-	 * @param {boolean}							[options.ensureSuccess]	- Should wait for the full response before calling the callback (slower)
+	 * @param {object}							settings				- Parameters used to setup the envelope and email body
 	 * @param {function}						callback				- Callback
 	 *
 	 * @return {undefined}
 	 *
 	 * @api public
 	 */
-	EmailSender.prototype.send = function (transportMethod, parameters, options,
-		callback
-	) {
+	EmailSender.prototype.send = function (transportMethod, settings, callback) {
 		var transport = this.transports[transportMethod.toLowerCase()];
+
+		if (this.compiler) {
+			transport.use('compile', NodemailerHtmlToText());
+		}
+
 		if (!transport || transportMethod === '*') {
 			transportMethod = this.defaultTransport;
 			transport = this.transports[transportMethod];
 		}
 
-		var ensureSuccess = !!options.ensureSuccess;
-		var handler = ensureSuccess ? 'on' : 'once';
-
-		transport.sendMail(parameters, function (error, response) {
-			if (error) {
-				return callback(error);
-			}
-
-			if (transportMethod !== 'direct') {
-				return callback.apply(null, arguments);
-			}
-
-			response.statusHandler[handler]('failed', function (data) {
-				callback(
-					'[Error:EmailSender] - ' +
-					'Permanently failed to send email to ' + data.domain + ' ' +
-					'and got the following response ' + data.response + '.'
-				);
-			});
-
-			response.statusHandler[handler]('sent', function (data) {
-				callback(null, data);
-			});
-
-		});
+		transport.sendMail(settings, callback);
 	};
 
 	return EmailSender;

@@ -1,18 +1,19 @@
-var SGSCommunication = require('./coverage/instrument/src/sgs-communication');
+// var SGSCommunication = require('./coverage/instrument/src/sgs-communication');
+var SGSCommunication = require('../src/sgs-communication');
 var sgscommunication = new SGSCommunication({
 	email: {
 		sender: {
 			stub: {},
 			defaultTransport: 'stub'
 		},
-		templatesPath: __dirname + '/fixtures/templates',
+		templatesDir: __dirname + '/fixtures/templates',
 		attachmentsPath: 'attachments'
 	}
 });
 
 // var assert = require('assert');
 
-describe('Testing the Crypto module:', function () {
+describe('Testing the Communication module:', function () {
 	'use strict';
 
 	it('Send email through stub', function (callback) {
@@ -21,20 +22,20 @@ describe('Testing the Crypto module:', function () {
 			{
 				from: 'mickael@sagacify.com',
 				to: 'mickael@sagacify.com',
-				lang: 'en',
 				type: 'invitation'
 			},
 			// data
-			{
+			[{
 				user: {
 					name: 'Mickael van der Beek'
 				},
 				link: 'http://www.google.be'
-			},
-			//options
-			{
-				ensureSuccess: true
-			},
+			}, {
+				user: {
+					name: 'Corn Flakes'
+				},
+				link: 'http://www.kelloggs.com'
+			}],
 			// callback
 			function (e) {
 				console.log('Email sent !');

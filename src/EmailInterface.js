@@ -3,9 +3,10 @@ var fs = require('fs');
 var path = require('path');
 var async = require('async');
 var MailParser = require('mailparser').MailParser;
+// var HtmlToText = require('html-to-text');
 var EmailSender = require('./EmailSender');
 var EmailReceiver = require('./EmailReceiver');
-var EmailTemplates = require('email-templates');
+var EmailTemplates = require('./EmailTemplates');
 
 module.exports = (function () {
 	'use strict';
@@ -25,11 +26,12 @@ module.exports = (function () {
 
 		options = options || {};
 
-		this.attachmentsPath = options.attachmentsPath || './';
-		this.templatesPath = options.templatesPath;
+		this.attachmentsPath = options.attachmentsPath || 'attachments';
+		this.templatesDir = options.templatesDir;
 
 		if (options.sender) {
 			this.sender = new EmailSender(options.sender);
+			this.templating = new EmailTemplates(options.templating);
 		}
 
 		if (options.receiver) {
@@ -159,30 +161,70 @@ module.exports = (function () {
 	 *
 	 * @api private
 	 */
-	EmailInterface.prototype.assembleEmail = function (settings, data, callback) {
-		var emailFields = settings || {};
+	EmailInterface.prototype.assembleEmail = function (type, data, callback) {
+		var accumulator = {};
+		var attachments = false;
+		var accumulate = function (templates) {
+			var uid = templates.uid;
+			templates.uid = null;
+			delete templates.uid;
 
-		var templatesPath = this.templatesPath;
-		var templateHelpers = this.templateHelpers;
-		var templatePartials = this.templatePartials;
+			accumulator[uid] = _.extend(accumulator[uid] || {}, templates);
+
+			var instance = accumulator[uid];
+
+			if(instance.html /*&& instance.subject*/ && attachments !== false) {
+				accumulator[uid] = null;
+				delete accumulator[uid];
+				callback(null, instance);
+			}
+		}.bind(this);
+
+		var attachmentsPath = this.attachmentsPath;
+		var templatesDir = this.templatesDir;
+		var templating = this.templating;
 
 		async.auto({
 			renderedEmail: function (cb) {
-				
-			},
-			renderedSubject: function (cb) {
+				templating.render({
+					templatesDir: templatesDir,
+					partials: {},
+					helper: {},
+					items: data,
+					type: type
+				}, function (e, templates) {
+					if(e) {
+						return cb(e);
+					}
 
+					accumulate(templates);
+					cb();
+				});
 			},
+			// renderedSubject: function (cb) {
+			// 	templating.render({
+			// 		templatesDir: templatesDir,
+			// 		partials: {},
+			// 		helper: {},
+			// 		items: data,
+			// 		type: type
+			// 	}, function (e, templates) {
+			// 		if(e) {
+			// 			return cb(e);
+			// 		}
+
+			// 		accumulate(templates);
+			// 		cb();
+			// 	});
+			// },
 			attachmentsFiles: function (cb) {
-				var attachmentsDir = path.resolve(basePath, 'attachments');
+				var attachmentsDir = path.resolve(templatesDir, type, attachmentsPath);
 				fs.readdir(attachmentsDir, cb);
 			},
 			attachmentsList: ['attachmentsFiles', function (cb, results) {
-				return _.map(
-					_.union(
-						results.attachmentsFiles,
-						settings.attachments
-					),
+				attachments = {};
+				attachments = _.map(
+					results.attachmentsFiles,
 					function (attachment) {
 						return {
 							filename: attachment,
@@ -191,20 +233,21 @@ module.exports = (function () {
 						};
 					}
 				);
+				cb();
 			}]
 		}, function (e, results) {
 			if(e) {
 				return callback(e);
 			}
 
-			_.merge(emailFields, {
-				html: results.renderedEmail.html,
-				text: results.renderedEmail.text,
-				subject: results.renderedSubject,
-				attachments: results.attachmentsList
-			});
+			// _.merge(emailFields, {
+			// 	html: results.renderedEmail.html,
+			// 	text: results.renderedEmail.text,
+			// 	subject: results.renderedSubject,
+			// 	attachments: results.attachmentsList
+			// });
 
-			callback(null, emailFields);
+			// callback(null, emailFields);
 		});
 	};
 
@@ -216,22 +259,73 @@ module.exports = (function () {
 	 *
 	 * @param {object}		settings	- {@link  EmailInterface#assembleEmail} Data use to create the envelop and email body
 	 * @param {object}		data		- Data to feed to the templating engine
-	 * @param {object}		options		- {@link  EmailSender#send} Options for the sending action
 	 * @param {function}	callback	- Callback
 	 *
 	 * @return {undefined}
 	 *
 	 * @api public
 	 */
-	EmailInterface.prototype.send = function (settings, data, options, callback) {
-		var me = this;
+	EmailInterface.prototype.send = function (settings, data, callback) {
+		if(_.isArray(data) === false) {
+			data = [data];
+		}
+
+		var callbackCount = data.length;
+
 		var transport = this.transport;
-		this.assembleEmail(settings, data, function (error, emailContents) {
-			if (error) {
-				return callback(error);
+		this.assembleEmail(settings.type, data, function (e, emailContents) {
+			if (e) {
+				return callback(e);
 			}
-			me.sender.send(transport, emailContents, options, callback);
-		});
+
+			console.log('emailContents', emailContents);
+
+			_.extend(settings, emailContents);
+
+			var failed = [];
+			var succeeded = [];
+
+			this.sender.send(transport, settings, function (e, info) {
+				callbackCount -= 1;
+
+				if(e && _.isArray(e.errors)) {
+					_.union(
+						failed,
+						_.map(e.errors, function (error) {
+							return error.recipients;
+						})
+					);
+				}
+
+				if (!info || !_.isObject(info)) {
+					return;
+				}
+
+				if (_.isArray(info.accepted)) {
+					_.union(
+						succeeded,
+						info.accepted
+					);
+				}
+				if (_.isArray(info.rejected)) {
+					_.union(
+						failed,
+						info.rejected
+					);
+				}
+				if (_.isArray(info.pending)) {
+					_.union(
+						failed,
+						info.pending
+					);
+				}
+
+				if (callbackCount === 0) {
+					callback(null, failed, succeeded);
+				}
+			});
+		}.bind(this));
+
 	};
 
 	/**
