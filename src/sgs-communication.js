@@ -7,12 +7,22 @@ module.exports = (function () {
 	 * @class SGSCommunication
 	 * @classdesc `SGSCommunication` class for communicating with different protocols like SMS and emails.
 	 *
-	 * @param {object}						[options]			- Options
-	 * @param {object}						[options.email]		- {@link EmailInterface} Options for the email protocol
-	 *
 	 * @return {SGSCommunication}
 	 */
-	function SGSCommunication (options) {
+	function SGSCommunication () {}
+
+	/**
+	 * @function init
+	 * @memberof SGSCommunication.prototype
+	 *
+	 * @param {object}	[options]			- Options
+	 * @param {object}	[options.email]		- {@link EmailInterface} Options for the email protocol
+	 *
+	 * @return {SGSCommunication}
+	 *
+	 * @api public
+	 */
+	SGSCommunication.prototype.init = function (options) {
 
 		this.protocols = {};
 
@@ -24,7 +34,7 @@ module.exports = (function () {
 			// new SMS Interface
 		// }
 
-	}
+	};
 
 	/**
 	 * Tells `SGSCommunication` what communication protocol and transport method to use.
@@ -37,7 +47,7 @@ module.exports = (function () {
 	 *
 	 * @return {(undefined|EmailInterface)}
 	 *
-	 * @api private
+	 * @api public
 	 */
 	SGSCommunication.prototype.with = function (protocol, transport) {
 		if (protocol in this.protocols) {
@@ -45,6 +55,6 @@ module.exports = (function () {
 		}
 	};
 
-	return SGSCommunication;
+	return new SGSCommunication();
 
 })();

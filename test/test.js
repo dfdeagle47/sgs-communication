@@ -1,6 +1,6 @@
 var SGSCommunication = require('./coverage/instrument/src/sgs-communication');
 // var SGSCommunication = require('../src/sgs-communication');
-var sgscommunication = new SGSCommunication({
+SGSCommunication.init({
 	email: {
 		sender: {
 			stub: {},
@@ -16,7 +16,7 @@ describe('Testing the Communication module:', function () {
 	'use strict';
 
 	describe('Testing the templating features:', function () {
-		templatingTests(sgscommunication);
+		templatingTests();
 	});
 
 });

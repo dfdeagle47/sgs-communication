@@ -1,10 +1,12 @@
+var SGSCommunication = require('./coverage/instrument/src/sgs-communication');
+
 var faker = require('faker');
 
-module.exports = function (sgscommunication) {
+module.exports = function () {
 	'use strict';
 
 	it('Send a single email with data', function (callback) {
-		sgscommunication.with('email', 'stub').send({
+		SGSCommunication.with('email', 'stub').send({
 			from: faker.Internet.email(),
 			to: faker.Internet.email(),
 			type: 'testing'
@@ -18,7 +20,7 @@ module.exports = function (sgscommunication) {
 	});
 
 	it('Send a single email with data and a static subject', function (callback) {
-		sgscommunication.with('email', 'stub').send({
+		SGSCommunication.with('email', 'stub').send({
 			subject: faker.Lorem.sentence(),
 			from: faker.Internet.email(),
 			to: faker.Internet.email(),
@@ -33,7 +35,7 @@ module.exports = function (sgscommunication) {
 	});
 
 	it('Send two emails fo the same type with the different data', function (callback) {
-		sgscommunication.with('email', 'stub').send({
+		SGSCommunication.with('email', 'stub').send({
 			from: faker.Internet.email(),
 			to: faker.Internet.email(),
 			type: 'testing'

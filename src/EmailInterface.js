@@ -291,7 +291,7 @@ module.exports = (function () {
 				return callback(e);
 			}
 
-			console.log('emailContents', emailContents);
+			// console.log('emailContents', emailContents);
 
 			_.extend(settings, emailContents);
 
