@@ -63,7 +63,7 @@ module.exports = (function () {
 
 			this.locals = locals;
 
-			this.send = function (e, text, html) {
+			this.send = function (e, html, text) {
 				callback(null, {
 					uid: uid,
 					html: html,

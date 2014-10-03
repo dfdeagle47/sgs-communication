@@ -176,7 +176,7 @@ module.exports = (function () {
 
 			var instance = accumulator[uid];
 
-			if(instance.html /*&& instance.subject*/ && attachments !== false) {
+			if(instance.html && instance.subject && attachments !== false) {
 				accumulator[uid] = null;
 				delete accumulator[uid];
 				callback(null, instance);
@@ -225,7 +225,10 @@ module.exports = (function () {
 						return cb(e);
 					}
 
-					accumulate(templates);
+					accumulate({
+						uid: templates.uid,
+						subject: templates.html
+					});
 					cb();
 				});
 			},
@@ -290,8 +293,6 @@ module.exports = (function () {
 			if (e) {
 				return callback(e);
 			}
-
-			// console.log('emailContents', emailContents);
 
 			_.extend(settings, emailContents);
 
