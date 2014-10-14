@@ -21,7 +21,7 @@ module.exports = function () {
 
 	it('Send a single email with data and a static subject', function (callback) {
 		SGSCommunication.with('email', 'stub').send({
-			subject: faker.Lorem.sentence(),
+			// subject: faker.Lorem.sentence(),
 			from: faker.Internet.email(),
 			to: faker.Internet.email(),
 			type: 'testing'

@@ -34,6 +34,10 @@ module.exports = (function () {
 
 		this.transports = {};
 
+		if (options.direct) {
+			this.addDirectTransport(options.direct);
+		}
+
 		if (options.stub) {
 			this.addStubMailTransport(options.stub);
 		}
