@@ -1,7 +1,7 @@
 {
 	"name": "sgs-communication",
 	"private": true,
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Sagacify's communication module. Support's both Email and SMS's.",
 	"main": "src/sgs-communication.js",
 	"scripts": {
